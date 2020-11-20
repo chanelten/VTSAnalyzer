@@ -16,11 +16,15 @@ public:
 	virtual const char* SaveSettings();
 
 	
-	Channel mInputChannel;
+	Channel mMosiChannel;
+	Channel mMisoChannel;
+	Channel mSyncChannel;
 	U32 mBitRate;
 
 protected:
-	std::auto_ptr< AnalyzerSettingInterfaceChannel >	mInputChannelInterface;
+	std::auto_ptr< AnalyzerSettingInterfaceChannel >	mInputMOSIChannelInterface;
+	std::auto_ptr< AnalyzerSettingInterfaceChannel >	mInputMISOChannelInterface;
+	std::auto_ptr< AnalyzerSettingInterfaceChannel >	mInputSYNCChannelInterface;
 	std::auto_ptr< AnalyzerSettingInterfaceInteger >	mBitRateInterface;
 };
 

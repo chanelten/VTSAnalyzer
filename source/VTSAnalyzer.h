@@ -21,18 +21,25 @@ public:
 	virtual const char* GetAnalyzerName() const;
 	virtual bool NeedsRerun();
 
+	virtual U8 ReadSerial(AnalyzerChannelData *serial, U32 samples_per_bit, U32 samples_to_first_center_of_first_data_bit);
+
 protected: //vars
 	std::auto_ptr< VTSAnalyzerSettings > mSettings;
 	std::auto_ptr< VTSAnalyzerResults > mResults;
-	AnalyzerChannelData* mSerial;
+	AnalyzerChannelData* mMosiSerial;
+	AnalyzerChannelData* mMisoSerial;
+	AnalyzerChannelData* mSync;
 
 	VTSSimulationDataGenerator mSimulationDataGenerator;
 	bool mSimulationInitilized;
 
 	//Serial analysis vars:
 	U32 mSampleRateHz;
+	std::vector<U32> mSampleOffsets;
 	U32 mStartOfStopBitOffset;
 	U32 mEndOfStopBitOffset;
+	BitState mBitLow;
+	BitState mBitHigh;
 };
 
 extern "C" ANALYZER_EXPORT const char* __cdecl GetAnalyzerName();

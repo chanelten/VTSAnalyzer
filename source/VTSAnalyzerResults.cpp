@@ -22,7 +22,8 @@ void VTSAnalyzerResults::GenerateBubbleText( U64 frame_index, Channel& channel, 
 	Frame frame = GetFrame( frame_index );
 
 	char number_str[128];
-	AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 8, number_str, 128 );
+	strcpy(number_str, "MISO: ");
+	AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 8, number_str + 6, 128 - 6 );
 	AddResultString( number_str );
 }
 

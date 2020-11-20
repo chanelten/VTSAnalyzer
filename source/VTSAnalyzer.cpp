@@ -19,44 +19,26 @@ void VTSAnalyzer::SetupResults()
 {
 	mResults.reset( new VTSAnalyzerResults( this, mSettings.get() ) );
 	SetAnalyzerResults( mResults.get() );
-	mResults->AddChannelBubblesWillAppearOn( mSettings->mInputChannel );
+	mResults->AddChannelBubblesWillAppearOn( mSettings->mMosiChannel );
 }
 
 void VTSAnalyzer::WorkerThread()
 {
 	mSampleRateHz = GetSampleRate();
 
-	mSerial = GetAnalyzerChannelData( mSettings->mInputChannel );
+	mMosiSerial = GetAnalyzerChannelData( mSettings->mMosiChannel );
 
-	if( mSerial->GetBitState() == BIT_LOW )
-		mSerial->AdvanceToNextEdge();
+	if( mMosiSerial->GetBitState() == BIT_LOW )
+		mMosiSerial->AdvanceToNextEdge();
 
 	U32 samples_per_bit = mSampleRateHz / mSettings->mBitRate;
 	U32 samples_to_first_center_of_first_data_bit = U32( 1.5 * double( mSampleRateHz ) / double( mSettings->mBitRate ) );
 
 	for( ; ; )
 	{
-		U8 data = 0;
-		U8 mask = 1 << 7;
-		
-		mSerial->AdvanceToNextEdge(); //falling edge -- beginning of the start bit
-
-		U64 starting_sample = mSerial->GetSampleNumber();
-
-		mSerial->Advance( samples_to_first_center_of_first_data_bit );
-
-		for( U32 i=0; i<8; i++ )
-		{
-			//let's put a dot exactly where we sample this bit:
-			mResults->AddMarker( mSerial->GetSampleNumber(), AnalyzerResults::Dot, mSettings->mInputChannel );
-
-			if( mSerial->GetBitState() == BIT_HIGH )
-				data |= mask;
-
-			mSerial->Advance( samples_per_bit );
-
-			mask = mask >> 1;
-		}
+		mMosiSerial->AdvanceToNextEdge(); //falling edge -- beginning of the start bit
+		U64 starting_sample = mMosiSerial->GetSampleNumber();
+		U8 data = ReadSerial(mMosiSerial, samples_per_bit, samples_to_first_center_of_first_data_bit);
 
 
 		//we have a byte to save. 
@@ -64,12 +46,39 @@ void VTSAnalyzer::WorkerThread()
 		frame.mData1 = data;
 		frame.mFlags = 0;
 		frame.mStartingSampleInclusive = starting_sample;
-		frame.mEndingSampleInclusive = mSerial->GetSampleNumber();
+		frame.mEndingSampleInclusive = mMosiSerial->GetSampleNumber();
 
 		mResults->AddFrame( frame );
 		mResults->CommitResults();
 		ReportProgress( frame.mEndingSampleInclusive );
 	}
+}
+
+U8 VTSAnalyzer::ReadSerial(AnalyzerChannelData *serial, U32 samples_per_bit, U32 samples_to_first_center_of_first_data_bit)
+{
+	U8 data = 0;
+	U8 mask = 1;
+	
+
+
+	serial->Advance( samples_to_first_center_of_first_data_bit );
+
+	for( U32 i=0; i<8; i++ )
+	{
+		//let's put a dot exactly where we sample this bit:
+		mResults->AddMarker( serial->GetSampleNumber(), AnalyzerResults::Dot, mSettings->mMosiChannel );
+
+		if( serial->GetBitState() == BIT_HIGH )
+			data |= mask;
+
+		serial->Advance( samples_per_bit );
+
+		mask = mask << 1;
+	}
+	mResults->AddMarker( serial->GetSampleNumber(), AnalyzerResults::Square, mSettings->mMosiChannel );
+	serial->Advance( samples_per_bit );
+
+	return data;
 }
 
 bool VTSAnalyzer::NeedsRerun()
