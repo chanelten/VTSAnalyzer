@@ -106,11 +106,17 @@ void VTSAnalyzer::WorkerThread()
 				AnalyzerChannelData* next_edge = NextChannelEdge();
 				if(next_edge == mSync){
 					frame.mFlags |= FLAG_END;
+					phase = PHASE_COMMAND;
+					first_data = true;
+				} else if(next_edge == mMosiSerial){
+					frame.mFlags |= FLAG_END;
+					phase = PHASE_MOSI_DATA;
+					first_data = true;
 				}
+				
 				mResults->AddFrame( frame );
 				mResults->CommitResults();
 				ReportProgress( frame.mEndingSampleInclusive );
-				break; // temp
 			} else if(phase == PHASE_MOSI_DATA) {
 				data = ReadByte(mMosiSerial,mSettings->mMosiChannel, samples_per_bit, samples_to_first_center_of_first_data_bit, &starting_sample);
 				frame.mStartingSampleInclusive = starting_sample;
@@ -122,11 +128,16 @@ void VTSAnalyzer::WorkerThread()
 				AnalyzerChannelData* next_edge = NextChannelEdge();
 				if(next_edge == mSync){
 					frame.mFlags |= FLAG_END;
+					phase = PHASE_COMMAND;
+					first_data = true;
+				} else if(next_edge == mMisoSerial){
+					frame.mFlags |= FLAG_END;
+					phase = PHASE_MISO_DATA;
+					first_data = true;
 				}
 				mResults->AddFrame( frame );
 				mResults->CommitResults();
 				ReportProgress( frame.mEndingSampleInclusive );
-				break; //temp
 			}
 
 		}
