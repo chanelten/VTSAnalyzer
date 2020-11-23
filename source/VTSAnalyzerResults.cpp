@@ -22,9 +22,47 @@ void VTSAnalyzerResults::GenerateBubbleText( U64 frame_index, Channel& channel, 
 	Frame frame = GetFrame( frame_index );
 
 	char number_str[128];
-	strcpy(number_str, "MISO: ");
-	AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 8, number_str + 6, 128 - 6 );
-	AddResultString( number_str );
+
+	if (frame.mData2 == DATA2_TYPE_MOSI_COMMAND && channel == mSettings->mMosiChannel)
+	{
+		U8 addr, cmd;
+		addr = frame.mData1 >> 3;
+		cmd = frame.mData1 & 0x3;
+		snprintf(number_str, 128, "ADDR: %02x CMD: %x", addr, cmd);
+		AddResultString( number_str );
+	} else if ((frame.mData2 == DATA2_TYPE_MOSI_DATA && channel == mSettings->mMosiChannel) ||
+				(frame.mData2 == DATA2_TYPE_MISO_DATA && channel == mSettings->mMisoChannel))
+	{
+		char *fmt = "%02x";
+		if(frame.mFlags == (FLAG_START | FLAG_END))
+		{
+			fmt = "[%02x]";
+		} else if(frame.mFlags == FLAG_START)
+		{
+			fmt = "[%02x";
+		} else if(frame.mFlags == FLAG_END)
+		{
+			fmt = "%02x]";
+		}
+		snprintf(number_str, 128, fmt, frame.mData1);
+#if 0
+		char *temp = number_str;
+		if(frame.mFlags & FLAG_START){
+			*temp = '[';
+			temp++;
+		}
+		temp += snprintf(temp, temp - ((char *)number_str), "%02x", frame.mData1);
+		if(frame.mFlags & FLAG_START){
+			*temp++ = '[';
+			temp++;
+		}
+		*temp = 0;
+#endif
+		AddResultString( number_str );
+	} else if (frame.mData2 == DATA2_TYPE_ERROR)
+	{
+		AddResultString("ERROR");
+	}
 }
 
 void VTSAnalyzerResults::GenerateExportFile( const char* file, DisplayBase display_base, U32 export_type_user_id )
@@ -34,7 +72,7 @@ void VTSAnalyzerResults::GenerateExportFile( const char* file, DisplayBase displ
 	U64 trigger_sample = mAnalyzer->GetTriggerSample();
 	U32 sample_rate = mAnalyzer->GetSampleRate();
 
-	file_stream << "Time [s],Value" << std::endl;
+	file_stream << "Time [s],Type,Value" << std::endl;
 
 	U64 num_frames = GetNumFrames();
 	for( U32 i=0; i < num_frames; i++ )
@@ -44,10 +82,19 @@ void VTSAnalyzerResults::GenerateExportFile( const char* file, DisplayBase displ
 		char time_str[128];
 		AnalyzerHelpers::GetTimeString( frame.mStartingSampleInclusive, trigger_sample, sample_rate, time_str, 128 );
 
+		char *type_str = "ERROR";
+		if(frame.mData2 == DATA2_TYPE_MOSI_DATA){
+			type_str = "MOSI";
+		} else if(frame.mData2 == DATA2_TYPE_MOSI_COMMAND){
+			type_str = "MOSI_COMMAND";
+		} else if(frame.mData2 == DATA2_TYPE_MISO_DATA){
+			type_str = "MISO";
+		}
+
 		char number_str[128];
 		AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 8, number_str, 128 );
 
-		file_stream << time_str << "," << number_str << std::endl;
+		file_stream << time_str << "," << type_str << "," << number_str << std::endl;
 
 		if( UpdateExportProgressAndCheckForCancel( i, num_frames ) == true )
 		{
@@ -64,10 +111,23 @@ void VTSAnalyzerResults::GenerateFrameTabularText( U64 frame_index, DisplayBase 
 #ifdef SUPPORTS_PROTOCOL_SEARCH
 	Frame frame = GetFrame( frame_index );
 	ClearTabularText();
-
 	char number_str[128];
-	AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 8, number_str, 128 );
-	AddTabularText( number_str );
+
+	if (frame.mData2 == DATA2_TYPE_MOSI_COMMAND)
+	{
+		U8 addr, cmd;
+		addr = frame.mData1 >> 3;
+		cmd = frame.mData2 & 0x3;
+		snprintf(number_str, 128, "ADDR: %02x CMD: %x", addr, cmd);
+		AddTabularText( number_str );
+	} else if ((frame.mData2 == DATA2_TYPE_MOSI_DATA) || (frame.mData2 == DATA2_TYPE_MISO_DATA))
+	{
+		AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 8, number_str, 128 );
+		AddTabularText( number_str );
+	} else if (frame.mData2 == DATA2_TYPE_ERROR)
+	{
+		AddTabularText("ERROR");
+	}
 #endif
 }
 

@@ -4,6 +4,24 @@
 #include <Analyzer.h>
 #include "VTSAnalyzerResults.h"
 #include "VTSSimulationDataGenerator.h"
+#include <iostream>
+#include <fstream>
+
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_FILE "/Users/jake/Documents/debugfile.txt"
+#endif
+
+//#define DATA2_TYPE_SYNC 0
+#define DATA2_TYPE_MOSI_COMMAND 1
+#define DATA2_TYPE_MOSI_DATA 2
+#define DATA2_TYPE_MISO_DATA 3
+#define DATA2_TYPE_ERROR 4
+
+#define FLAG_START	(1)
+#define FLAG_END 	(1 << 1 )
+
 
 class VTSAnalyzerSettings;
 class ANALYZER_EXPORT VTSAnalyzer : public Analyzer2
@@ -21,7 +39,13 @@ public:
 	virtual const char* GetAnalyzerName() const;
 	virtual bool NeedsRerun();
 
-	virtual U8 ReadSerial(AnalyzerChannelData *serial, U32 samples_per_bit, U32 samples_to_first_center_of_first_data_bit);
+private:
+	virtual U8 ReadByte(AnalyzerChannelData *serial, Channel& channel, U32 samples_per_bit, U32 samples_to_first_center_of_first_data_bit, U64 *starting_sample);
+	virtual void SyncSerials();
+	virtual AnalyzerChannelData* NextChannelEdge();
+#ifdef DEBUG
+	virtual void LogDebug(const char *fmt,...);
+#endif
 
 protected: //vars
 	std::auto_ptr< VTSAnalyzerSettings > mSettings;
@@ -29,6 +53,9 @@ protected: //vars
 	AnalyzerChannelData* mMosiSerial;
 	AnalyzerChannelData* mMisoSerial;
 	AnalyzerChannelData* mSync;
+#ifdef DEBUG
+	std::ofstream mDebugFileStream;
+#endif
 
 	VTSSimulationDataGenerator mSimulationDataGenerator;
 	bool mSimulationInitilized;
