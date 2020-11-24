@@ -73,7 +73,8 @@ void VTSAnalyzerSettings::LoadSettings( const char* settings )
 	text_archive.SetString( settings );
 
 	text_archive >> mMosiChannel;
-	text_archive >> mBitRate;
+	text_archive >> mMisoChannel;
+	text_archive >> mSyncChannel;
 
 	ClearChannels();
 	AddChannel( mMosiChannel, "VTS-MOSI", true );
@@ -88,7 +89,8 @@ const char* VTSAnalyzerSettings::SaveSettings()
 	SimpleArchive text_archive;
 
 	text_archive << mMosiChannel;
-	text_archive << mBitRate;
+	text_archive << mMisoChannel;
+	text_archive << mSyncChannel;
 
 	return SetReturnString( text_archive.GetString() );
 }
