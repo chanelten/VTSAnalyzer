@@ -3,10 +3,7 @@
 #include <AnalyzerChannelData.h>
 
 VTSAnalyzer::VTSAnalyzer()
-:	Analyzer2(),  
-#ifdef DEBUG
-	mDebugFileStream( DEBUG_FILE, std::ios::out ),
-#endif
+:	Analyzer2(),
 	mSettings( new VTSAnalyzerSettings() ),
 	mSimulationInitilized( false )
 {
@@ -159,15 +156,13 @@ void VTSAnalyzer::SyncSerials()
 	U64 sync_sample_number = mSync->GetSampleNumber();
 	mMosiSerial->AdvanceToAbsPosition(sync_sample_number);
 	mMisoSerial->AdvanceToAbsPosition(sync_sample_number);
-	//LogDebug("sync_sample_number=%u", sync_sample_number);
-	//LogDebug("mosi sample number=%u", mMosiSerial->GetSampleNumber());
-	//LogDebug("miso sample number=%u", mMisoSerial->GetSampleNumber());
 }
 
 #define MIN2(a,b) (((a) < (b)) ? (a):(b))
 #define MIN3(a,b,c) (((a) < (b)) ? (MIN2((a),(c))):(MIN2((b),(c))))
 AnalyzerChannelData* VTSAnalyzer::NextChannelEdge()
 {
+	// NOTE: this assumes that SYNC, MOSI and MISO don't "edge" together
 	U64 next_miso_edge = mMisoSerial->GetSampleOfNextEdge();
 	U64 next_mosi_edge = mMosiSerial->GetSampleOfNextEdge();
 	U64 next_sync_edge = mSync->GetSampleOfNextEdge();
@@ -213,18 +208,6 @@ U8 VTSAnalyzer::ReadByte(AnalyzerChannelData *serial, Channel& channel, U32 samp
 
 	return data;
 }
-
-#ifdef DEBUG
-void VTSAnalyzer::LogDebug(const char *fmt,...)
-{
-	char buf[128];
-	va_list args;
-	va_start(args, fmt);
-	vsprintf(buf, fmt, args);
-	va_end(args);
-	mDebugFileStream << buf << std::endl;
-}
-#endif
 
 bool VTSAnalyzer::NeedsRerun()
 {

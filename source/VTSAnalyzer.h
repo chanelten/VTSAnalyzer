@@ -7,12 +7,6 @@
 #include <iostream>
 #include <fstream>
 
-#define DEBUG
-
-#ifdef DEBUG
-#define DEBUG_FILE "/Users/jake/Documents/debugfile.txt"
-#endif
-
 //#define DATA2_TYPE_SYNC 0
 #define DATA2_TYPE_MOSI_COMMAND 1
 #define DATA2_TYPE_MOSI_DATA 2
@@ -44,9 +38,6 @@ private:
 	virtual void SyncSerials();
 	virtual AnalyzerChannelData* NextChannelEdge();
 	virtual void AddFrame(const Frame &f);
-#ifdef DEBUG
-	virtual void LogDebug(const char *fmt,...);
-#endif
 
 protected: //vars
 	std::auto_ptr< VTSAnalyzerSettings > mSettings;
@@ -54,9 +45,6 @@ protected: //vars
 	AnalyzerChannelData* mMosiSerial;
 	AnalyzerChannelData* mMisoSerial;
 	AnalyzerChannelData* mSync;
-#ifdef DEBUG
-	std::ofstream mDebugFileStream;
-#endif
 
 	VTSSimulationDataGenerator mSimulationDataGenerator;
 	bool mSimulationInitilized;

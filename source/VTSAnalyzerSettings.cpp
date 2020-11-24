@@ -27,7 +27,8 @@ VTSAnalyzerSettings::VTSAnalyzerSettings()
 	AddInterface( mInputMOSIChannelInterface.get() );
 	AddInterface( mInputMISOChannelInterface.get() );
 	AddInterface( mInputSYNCChannelInterface.get() );
-	AddInterface( mBitRateInterface.get() );
+	// Commented out because we're always 4800 baud anyway
+	// AddInterface( mBitRateInterface.get() );
 
 	AddExportOption( 0, "Export as text/csv file" );
 	AddExportExtension( 0, "text", "txt" );
