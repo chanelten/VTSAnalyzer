@@ -36,16 +36,15 @@ void VTSAnalyzer::SetupResults()
 	//}
 }
 
-static enum {
-	PHASE_COMMAND,
-	PHASE_COMPLEMENT,
-	PHASE_ACK,
-	PHASE_MISO_DATA,
-	PHASE_MOSI_DATA,
-} phase = PHASE_COMMAND;
-
 void VTSAnalyzer::WorkerThread()
 {
+	enum {
+		PHASE_COMMAND,
+		PHASE_COMPLEMENT,
+		PHASE_ACK,
+		PHASE_MISO_DATA,
+		PHASE_MOSI_DATA,
+	} phase = PHASE_COMMAND;
 	mSampleRateHz = GetSampleRate();
 
 	mMosiSerial = GetAnalyzerChannelData( mSettings->mMosiChannel );
@@ -68,8 +67,6 @@ void VTSAnalyzer::WorkerThread()
 		mResults->AddMarker( mSync->GetSampleNumber(), AnalyzerResults::UpArrow, mSettings->mSyncChannel );
 		phase = PHASE_COMMAND;
 		bool first_data = true;
-		//mMosiSerial->AdvanceToNextEdge();
-		//mMisoSerial->AdvanceToNextEdge();
 
 		U8 cmd;
 		Frame frame;
@@ -90,14 +87,21 @@ void VTSAnalyzer::WorkerThread()
 				frame.mData1 = cmd;
 				frame.mData2 = DATA2_TYPE_MOSI_COMMAND;
 				frame.mFlags = 0;
-				mResults->AddFrame( frame );
-				mResults->CommitResults();
-				ReportProgress( frame.mEndingSampleInclusive );
+				AddFrame( frame );
+				AnalyzerChannelData* next_edge = NextChannelEdge();
 				phase = PHASE_MISO_DATA;
+				if(next_edge == mSync){
+					frame.mData1 = cmd;
+					frame.mData2 = DATA2_TYPE_ERROR_NO_ACK;
+					frame.mFlags = 0;
+					frame.mStartingSampleInclusive = frame.mEndingSampleInclusive;
+					frame.mEndingSampleInclusive = mSync->GetSampleOfNextEdge();
+					AddFrame( frame );
+				}
 				continue;
 			} else if(phase == PHASE_MISO_DATA) {
 				data = ReadByte(mMisoSerial, mSettings->mMisoChannel,samples_per_bit, samples_to_first_center_of_first_data_bit, &starting_sample);
-				frame.mStartingSampleInclusive = frame.mEndingSampleInclusive;
+				frame.mStartingSampleInclusive = starting_sample;
 				frame.mEndingSampleInclusive = mMisoSerial->GetSampleNumber();
 				frame.mData1 = data;
 				frame.mData2 = DATA2_TYPE_MISO_DATA;
@@ -114,9 +118,7 @@ void VTSAnalyzer::WorkerThread()
 					first_data = true;
 				}
 				
-				mResults->AddFrame( frame );
-				mResults->CommitResults();
-				ReportProgress( frame.mEndingSampleInclusive );
+				AddFrame( frame );
 			} else if(phase == PHASE_MOSI_DATA) {
 				data = ReadByte(mMosiSerial,mSettings->mMosiChannel, samples_per_bit, samples_to_first_center_of_first_data_bit, &starting_sample);
 				frame.mStartingSampleInclusive = starting_sample;
@@ -135,9 +137,7 @@ void VTSAnalyzer::WorkerThread()
 					phase = PHASE_MISO_DATA;
 					first_data = true;
 				}
-				mResults->AddFrame( frame );
-				mResults->CommitResults();
-				ReportProgress( frame.mEndingSampleInclusive );
+				AddFrame( frame );
 			}
 
 		}
@@ -145,6 +145,13 @@ void VTSAnalyzer::WorkerThread()
 
 
 	}
+}
+
+void VTSAnalyzer::AddFrame(const Frame &f)
+{
+	mResults->AddFrame( f );
+	mResults->CommitResults();
+	ReportProgress( f.mEndingSampleInclusive );
 }
 
 void VTSAnalyzer::SyncSerials()
@@ -181,16 +188,7 @@ U8 VTSAnalyzer::ReadByte(AnalyzerChannelData *serial, Channel& channel, U32 samp
 
 	serial->AdvanceToNextEdge();
 
-	if(phase == PHASE_COMMAND)
-	{
-		mResults->AddMarker( serial->GetSampleNumber(), AnalyzerResults::Start, channel);
-	} else if(phase == PHASE_COMPLEMENT)
-	{
-		mResults->AddMarker( serial->GetSampleNumber(), AnalyzerResults::UpArrow, channel );
-	} else
-	{
-		mResults->AddMarker( serial->GetSampleNumber(), AnalyzerResults::DownArrow, channel );
-	}
+	mResults->AddMarker( serial->GetSampleNumber(), AnalyzerResults::Start, channel);
 	if(starting_sample != NULL)
 	{
 		*starting_sample = serial->GetSampleNumber();

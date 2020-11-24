@@ -28,40 +28,28 @@ void VTSAnalyzerResults::GenerateBubbleText( U64 frame_index, Channel& channel, 
 		U8 addr, cmd;
 		addr = frame.mData1 >> 3;
 		cmd = frame.mData1 & 0x3;
-		snprintf(number_str, 128, "ADDR: %02x CMD: %x", addr, cmd);
+		snprintf(number_str, 128, "ADDR: 0x%02x CMD: 0x%x", addr, cmd);
 		AddResultString( number_str );
 	} else if ((frame.mData2 == DATA2_TYPE_MOSI_DATA && channel == mSettings->mMosiChannel) ||
 				(frame.mData2 == DATA2_TYPE_MISO_DATA && channel == mSettings->mMisoChannel))
 	{
-		char *fmt = "%02x";
+		char *fmt = "0x%02x";
 		if(frame.mFlags == (FLAG_START | FLAG_END))
 		{
-			fmt = "[%02x]";
+			fmt = "[0x%02x]";
 		} else if(frame.mFlags == FLAG_START)
 		{
-			fmt = "[%02x";
+			fmt = "[0x%02x";
 		} else if(frame.mFlags == FLAG_END)
 		{
-			fmt = "%02x]";
+			fmt = "0x%02x]";
 		}
 		snprintf(number_str, 128, fmt, frame.mData1);
-#if 0
-		char *temp = number_str;
-		if(frame.mFlags & FLAG_START){
-			*temp = '[';
-			temp++;
-		}
-		temp += snprintf(temp, temp - ((char *)number_str), "%02x", frame.mData1);
-		if(frame.mFlags & FLAG_START){
-			*temp++ = '[';
-			temp++;
-		}
-		*temp = 0;
-#endif
 		AddResultString( number_str );
-	} else if (frame.mData2 == DATA2_TYPE_ERROR)
+	} else if (frame.mData2 == DATA2_TYPE_ERROR_NO_ACK)
 	{
-		AddResultString("ERROR");
+		snprintf(number_str, 128, "ERROR: NO ACK TO %02x", frame.mData1 >> 3);
+		AddResultString(number_str);
 	}
 }
 
@@ -89,6 +77,8 @@ void VTSAnalyzerResults::GenerateExportFile( const char* file, DisplayBase displ
 			type_str = "MOSI_COMMAND";
 		} else if(frame.mData2 == DATA2_TYPE_MISO_DATA){
 			type_str = "MISO";
+		} else if(frame.mData2 == DATA2_TYPE_ERROR_NO_ACK){
+			type_str = "ERROR_NO_ACK";
 		}
 
 		char number_str[128];
@@ -118,15 +108,16 @@ void VTSAnalyzerResults::GenerateFrameTabularText( U64 frame_index, DisplayBase 
 		U8 addr, cmd;
 		addr = frame.mData1 >> 3;
 		cmd = frame.mData2 & 0x3;
-		snprintf(number_str, 128, "ADDR: %02x CMD: %x", addr, cmd);
+		snprintf(number_str, 128, "ADDR: 0x%02x CMD: 0x%x", addr, cmd);
 		AddTabularText( number_str );
 	} else if ((frame.mData2 == DATA2_TYPE_MOSI_DATA) || (frame.mData2 == DATA2_TYPE_MISO_DATA))
 	{
 		AnalyzerHelpers::GetNumberString( frame.mData1, display_base, 8, number_str, 128 );
 		AddTabularText( number_str );
-	} else if (frame.mData2 == DATA2_TYPE_ERROR)
+	} else if (frame.mData2 == DATA2_TYPE_ERROR_NO_ACK)
 	{
-		AddTabularText("ERROR");
+		snprintf(number_str, 128, "ERROR: NO ACK TO 0x%02x", frame.mData1 >> 3);
+		AddTabularText(number_str);
 	}
 #endif
 }
