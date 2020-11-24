@@ -10,4 +10,5 @@
 2. Go to `Custom Low Level Analyzers` from the hamburger menu at the bottom
 3. Set the directory to `<path to repo>/debug`
 4. Reload Logic2
-5. Load the VTS Analyzer like you would any Low Level Analyzer (e.g. Serial/CAN)
+5. Load the VTS Analyzer like you would any Low Level Analyzer (e.g. Serial/CAN):
+![Use VTS Demo](images/enable_vts.gif)
